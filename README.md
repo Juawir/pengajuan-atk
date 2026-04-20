@@ -1,59 +1,98 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Informasi Pengajuan ATK (Alat Tulis Kantor)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web berbasis **Laravel 12** yang dikembangkan untuk mengelola, melacak, dan mendokumentasikan proses pengajuan dan peminjaman Alat Tulis Kantor (ATK) secara sistematis. Aplikasi ini memudahkan alur kerja antara pihak pengaju (karyawan/staf) hingga ke pihak admin untuk proses persetujuan dan rekapitulasi data.
 
-## About Laravel
+## 🚀 Teknologi yang Digunakan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Aplikasi ini dibangun menggunakan arsitektur modern (TALL stack / kombinasi Vue/Blade) dengan rincian teknologi sebagai berikut:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Backend
+* **Bahasa Pemrograman:** PHP (Mendukung PHP versi `^8.2`)
+* **Framework:** Laravel `^12.0` (Versi terbaru)
+* **Database:** MySQL / MariaDB (Dijalankan via XAMPP)
+* **Routing & Controllers:** Laravel native HTTP Controller
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend
+* **Templating Engine:** Blade UI (Ekstensi `.blade.php`)
+* **CSS Framework:** TailwindCSS `^4.0`
+* **Bundler / Build Tool:** Vite `^7.0` (beserta `laravel-vite-plugin`)
+* **HTTP Client Asinkron**: Axios `^1.11` (Untuk pemrosesan *request* REST API/AJAX secara dinamis)
+* **Manajemen Aset (Asset Pipeline):** Node.js & NPM
 
-## Learning Laravel
+## 📌 Fitur Utama
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Berdasarkan struktur sistem yang telah dibangun, aplikasi ini meliputi fungsionalitas berikut:
+1. **Otentikasi & Keamanan (Auth)**: Sistem Login, Register, Middleware Admin, beserta manajemen sesi (Session).
+2. **Pengajuan Barang/ATK**: Fungsionalitas CRUD (*Create, Read, Update, Delete*) untuk staf mengajukan ATK.
+3. **Peminjaman ATK**: Sistem pendataan peminjaman barang.
+4. **Laporan & Rekapitulasi**: Pembuatan (Generate) Laporan pengajuan barang ke dalam bentuk/format PDF menggunakan plugin PDF renderer.
+5. **Notifikasi**: Sistem pemberitahuan status pengajuan/update terbaru.
+6. **Manajemen Konten / Artikel**: Dashboard untuk mengelola artikel sistem maupun petunjuk/informasi umum.
+7. **Pengaturan Sistem**: Konfigurasi umum aplikasi yang dikendalikan oleh Admin.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠 Panduan Instalasi (Development)
 
-## Laravel Sponsors
+Untuk mengunduh dan menjalankan aplikasi ini secara lokal/development, ikuti langkah-langkah di bawah ini:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Persiapan Prasyarat
+- Telah ter-install **PHP 8.2** atau lebih baru.
+- Telah ter-install **Composer**.
+- Telah ter-install **Node.js** & **NPM**.
+- Telah menyalakan layanan web server & database (**XAMPP** -> Apache & MySQL).
 
-### Premium Partners
+### Langkah Menjalankan Aplikasi
+1. **Kloning Repositori**
+   ```bash
+   git clone https://github.com/Juawir/pengajuan-atk.git
+   cd pengajuan-atk
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+2. **Instalasi Pustaka (Dependencies)**
+   ```bash
+   composer install
+   npm install
+   ```
 
-## Contributing
+3. **Konfigurasi Environment Database**
+   Konfigurasi otomatis atau manual, ubah file `.env.example` menjadi `.env`.
+   ```bash
+   cp .env.example .env
+   ```
+   Pastikan mengubah konfigurasi database Anda di dalam `.env`:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=pengajuan_atk
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4. **Generate Application Key & Migrasi Database**
+   ```bash
+   php artisan key:generate
+   php artisan migrate
+   ```
+   *(Opsional: Jika ada data dummy/seeder awal)*
+   ```bash
+   php artisan db:seed
+   ```
 
-## Code of Conduct
+5. **Jalankan Aplikasi**
+   Buka 2 Terminal / Command Prompt terpisah secara bersamaan.
+   
+   Terminal 1 (Menjalankan server Laravel):
+   ```bash
+   php artisan serve
+   ```
+   
+   Terminal 2 (Menjalankan server aset Vite TailwindCSS):
+   ```bash
+   npm run dev
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+6. **Selesai**
+   Buka web browser dan akses melalui **[http://127.0.0.1:8000](http://127.0.0.1:8000)**.
+   
+---
+*Dokumentasi ini di-generate secara otomatis untuk repositori pengajuan-atk.*
