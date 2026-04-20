@@ -1,0 +1,205 @@
+/* ============================================================
+   ATK System — Print Stylesheet
+   PDF Export / Printable Pages
+   Style Guide: Kinetic Forge
+   ============================================================ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1e293b;
+    background: white;
+    line-height: 1.5;
+    padding: 24px;
+}
+
+/* ===== HEADER ===== */
+.print-header {
+    text-align: center;
+    border-bottom: 3px solid #E62117;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+
+.print-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #E62117;
+    margin-bottom: 4px;
+}
+
+.print-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.print-header .period {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.print-header .date {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* ===== STATS GRID ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 14px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.stat-box .value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.stat-box .label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* ===== STAT VALUE COLORS ===== */
+.stat-value-approved { color: #10b981; }
+.stat-value-pending { color: #f59e0b; }
+.stat-value-rejected { color: #E62117; }
+.stat-value-items { color: #0DE5FF; }
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #E62117;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* ===== TABLES ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    font-size: 12px;
+}
+
+table thead th {
+    background: #1B263B;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+table thead th:first-child {
+    border-radius: 6px 0 0 0;
+}
+
+table thead th:last-child {
+    border-radius: 0 6px 0 0;
+}
+
+table tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+table tbody tr:hover {
+    background: #f1f5f9;
+}
+
+.text-center { text-align: center; }
+.text-bold { font-weight: 600; }
+.text-small { font-size: 11px; }
+.text-muted { color: #94a3b8; }
+
+/* ===== BADGES ===== */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-approved { background: #d1fae5; color: #065f46; }
+.badge-rejected { background: #fee2e2; color: #991b1b; }
+
+.badge-tinggi { background: #fee2e2; color: #991b1b; }
+.badge-sedang { background: #fef3c7; color: #92400e; }
+.badge-rendah { background: #d1fae5; color: #065f46; }
+
+/* ===== FOOTER ===== */
+.print-footer {
+    text-align: center;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* ===== PRINT BUTTON ===== */
+.print-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    background: #E62117;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(230, 33, 23, 0.3);
+    z-index: 100;
+}
+
+.print-btn:hover {
+    background: #c81e15;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-cell {
+    text-align: center;
+    padding: 20px;
+    color: #94a3b8;
+}
+
+/* ===== PRINT MEDIA ===== */
+@media print {
+    body { padding: 0; }
+    .no-print { display: none !important; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+}
