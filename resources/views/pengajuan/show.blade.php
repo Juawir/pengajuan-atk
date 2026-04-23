@@ -96,6 +96,17 @@
                     </div>
                 </div>
 
+                @if($pengajuan->status === 'Ditolak' && $pengajuan->alasan_penolakan)
+                    <div style="margin-top: 24px; padding: 16px; background: rgba(255, 107, 94, 0.1); border: 1px solid rgba(255, 107, 94, 0.3); border-left: 4px solid var(--accent-rose); border-radius: var(--radius-sm);">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--accent-rose); margin-bottom: 6px;">
+                            <i class="bi bi-x-circle-fill" style="margin-right: 4px;"></i> Alasan Penolakan:
+                        </div>
+                        <div style="font-size: 14px; font-weight: 400; line-height: 1.6; color: var(--text-primary);">
+                            {{ $pengajuan->alasan_penolakan }}
+                        </div>
+                    </div>
+                @endif
+
                 @if($pengajuan->keterangan)
                     <div class="detail-item" style="margin-top: 20px;">
                         <div class="detail-item-label">

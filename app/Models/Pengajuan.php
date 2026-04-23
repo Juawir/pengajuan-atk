@@ -18,7 +18,8 @@ class Pengajuan extends Model
         'prioritas',
         'keterangan',
         'foto_barang',
-        'status'
+        'status',
+        'alasan_penolakan'
     ];
 
     protected $casts = [

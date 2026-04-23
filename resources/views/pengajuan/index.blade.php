@@ -162,14 +162,9 @@
                                                         <i class="bi bi-check-circle" style="color: #34d399;"></i> Disetujui
                                                     </button>
                                                 </form>
-                                                <form method="POST" action="{{ route('pengajuan.updateStatus', $p->id) }}">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="hidden" name="status" value="Ditolak">
-                                                    <button type="submit" class="status-dropdown-item">
-                                                        <i class="bi bi-x-circle" style="color: #ff6b5e;"></i> Ditolak
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="status-dropdown-item" onclick="openRejectModal('{{ route('pengajuan.updateStatus', $p->id) }}')">
+                                                    <i class="bi bi-x-circle" style="color: #ff6b5e;"></i> Ditolak
+                                                </button>
                                             </div>
                                         </div>
 
@@ -250,6 +245,33 @@
             </div>
         </div>
     @endif
+
+    {{-- Reject Confirmation Modal (Admin Only) --}}
+    @if(auth()->user()->isAdmin())
+        <div class="modal-overlay" id="rejectModal">
+            <div class="modal-box" style="max-width: 450px;">
+                <div class="modal-title">
+                    <i class="bi bi-x-circle-fill" style="color: var(--accent-rose); margin-right: 8px;"></i>
+                    Penolakan Pengajuan
+                </div>
+                <form id="reject-form" method="POST" action="">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="status" value="Ditolak">
+                    <div class="modal-text" style="text-align: left; margin-top: 10px;">
+                        <label for="alasan_penolakan" class="form-label">Alasan Penolakan <span style="color: var(--accent-primary);">*</span></label>
+                        <textarea name="alasan_penolakan" id="alasan_penolakan" class="form-control" rows="3" placeholder="Masukkan alasan kenapa pengajuan ini ditolak..." required style="resize: none;"></textarea>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 20px;">
+                        <button type="button" class="btn btn-ghost" onclick="closeRejectModal()">Batal</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-send-fill"></i> Tolak Pengajuan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @section('scripts')
@@ -310,6 +332,26 @@
 
         document.getElementById('deleteModal').addEventListener('click', function(e) {
             if (e.target === this) closeDeleteModal();
+        });
+
+        // Reject Modal Logic
+        function openRejectModal(formActionUrl) {
+            document.getElementById('reject-form').action = formActionUrl;
+            document.getElementById('alasan_penolakan').value = '';
+            document.getElementById('rejectModal').classList.add('show');
+            
+            // Close status dropdowns
+            document.querySelectorAll('.status-dropdown.active').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.remove('show');
+        }
+
+        document.getElementById('rejectModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
         });
     @endif
 </script>

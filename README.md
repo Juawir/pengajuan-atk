@@ -73,12 +73,30 @@ Untuk mengunduh dan menjalankan aplikasi ini secara lokal/development, ikuti lan
    php artisan key:generate
    php artisan migrate
    ```
-   *(Opsional: Jika ada data dummy/seeder awal)*
+
+5. **Membuat Akun Pertama (Admin)**
+   Karena sistem registrasi hanya dapat diakses oleh Admin, Anda perlu membuat akun pertama secara manual setelah instalasi. Ada dua cara untuk melakukannya:
+
+   **Cara A: Menggunakan Seeder (Beserta Data Dummy)**
+   Cocok untuk keperluan testing/development. Men-generate admin + beberapa user & data dummy.
    ```bash
    php artisan db:seed
    ```
+   *(Login Admin Default: `admin@atk.com` | Password: `12345678`)*
 
-5. **Jalankan Aplikasi**
+   **Cara B: Menggunakan Laravel Tinker (Sistem Kosong/Produksi)**
+   Gunakan jika Anda hanya ingin membuat akun Admin tanpa data dummy.
+   Jalankan perintah ini di terminal:
+   ```bash
+   php artisan tinker
+   ```
+   Kemudian jalankan kode ini di dalam shell Tinker:
+   ```php
+   App\Models\User::create(['name' => 'Super Admin', 'email' => 'admin@domain.com', 'password' => 'password123', 'role' => 'admin', 'departemen' => 'IT']);
+   ```
+   *Ketik `exit` untuk keluar dari Tinker setelah selesai.*
+
+6. **Jalankan Aplikasi**
    Buka 2 Terminal / Command Prompt terpisah secara bersamaan.
    
    Terminal 1 (Menjalankan server Laravel):

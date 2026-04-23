@@ -24,16 +24,20 @@ class PengajuanController extends Controller
             $baseQuery->where('departemen', $user->departemen);
         }
 
-        $totalPengajuan = (clone $baseQuery)->count();
-        $totalPending   = (clone $baseQuery)->where('status', 'Pending')->count();
-        $totalDisetujui = (clone $baseQuery)->where('status', 'Disetujui')->count();
-        $totalDitolak   = (clone $baseQuery)->where('status', 'Ditolak')->count();
+        // Optimasi: 4 query count digabung menjadi 1 query aggregate
+        $stats = (clone $baseQuery)->selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'Disetujui' THEN 1 ELSE 0 END) as disetujui,
+            SUM(CASE WHEN status = 'Ditolak' THEN 1 ELSE 0 END) as ditolak
+        ")->first();
 
-        $deptQuery = Pengajuan::query();
-        if ($user->isUser()) {
-            $deptQuery->where('departemen', $user->departemen);
-        }
-        $deptData = $deptQuery->selectRaw('departemen, COUNT(*) as total')
+        $totalPengajuan = $stats->total ?? 0;
+        $totalPending   = $stats->pending ?? 0;
+        $totalDisetujui = $stats->disetujui ?? 0;
+        $totalDitolak   = $stats->ditolak ?? 0;
+
+        $deptData = (clone $baseQuery)->selectRaw('departemen, COUNT(*) as total')
             ->groupBy('departemen')
             ->orderByDesc('total')
             ->get();
@@ -41,11 +45,7 @@ class PengajuanController extends Controller
         $deptLabels = $deptData->pluck('departemen')->toArray();
         $deptValues = $deptData->pluck('total')->toArray();
 
-        $recentQuery = Pengajuan::query();
-        if ($user->isUser()) {
-            $recentQuery->where('departemen', $user->departemen);
-        }
-        $recentPengajuan = $recentQuery->latest()->take(5)->get();
+        $recentPengajuan = (clone $baseQuery)->latest()->take(5)->get();
 
         return view('dashboard', compact(
             'totalPengajuan',
@@ -63,45 +63,18 @@ class PengajuanController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
         $query = Pengajuan::query();
+        $this->applyFilters($query, $request);
 
-        if ($user->isUser()) {
-            $query->where('departemen', $user->departemen);
-        }
+        $pengajuans = $query->latest()->paginate(10)->withQueryString();
+        $departemenList = Pengajuan::select('departemen')->distinct()->pluck('departemen');
+        $tahunList = Pengajuan::selectRaw('YEAR(created_at) as tahun')->distinct()->orderByDesc('tahun')->pluck('tahun');
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('departemen') && $user->isAdmin()) {
-            $query->where('departemen', $request->departemen);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_pemohon', 'like', "%{$search}%")
-                  ->orWhere('nama_barang', 'like', "%{$search}%")
-                  ->orWhere('departemen', 'like', "%{$search}%");
-            });
-        }
-
-        // Multi-month filter
         $selectedMonths = $request->get('bulan', []);
         if (!is_array($selectedMonths)) {
             $selectedMonths = $selectedMonths ? [$selectedMonths] : [];
         }
         $tahun = $request->get('tahun', now()->year);
-
-        if (!empty($selectedMonths)) {
-            $query->whereYear('created_at', $tahun)
-                  ->whereIn(DB::raw('MONTH(created_at)'), $selectedMonths);
-        }
-
-        $pengajuans = $query->latest()->paginate(10)->withQueryString();
-        $departemenList = Pengajuan::select('departemen')->distinct()->pluck('departemen');
-        $tahunList = Pengajuan::selectRaw('YEAR(created_at) as tahun')->distinct()->orderByDesc('tahun')->pluck('tahun');
 
         return view('pengajuan.index', compact('pengajuans', 'departemenList', 'selectedMonths', 'tahun', 'tahunList'));
     }
@@ -251,11 +224,17 @@ class PengajuanController extends Controller
     {
         $request->validate([
             'status' => 'required|in:Pending,Disetujui,Ditolak',
+            'alasan_penolakan' => 'nullable|string'
         ]);
 
         $oldStatus = $pengajuan->status;
         $newStatus = $request->status;
-        $pengajuan->update(['status' => $newStatus]);
+        $alasan = $request->alasan_penolakan;
+
+        $pengajuan->update([
+            'status' => $newStatus,
+            'alasan_penolakan' => $newStatus === 'Ditolak' ? $alasan : null
+        ]);
 
         // === NOTIFIKASI: Kirim ke user pembuat pengajuan ===
         if ($pengajuan->user_id) {
@@ -266,12 +245,17 @@ class PengajuanController extends Controller
             ];
 
             $info = $statusMap[$newStatus];
+            $msg = 'Pengajuan ' . $pengajuan->nama_barang . ' (' . $pengajuan->jumlah . ' unit) telah ' . strtolower($newStatus) . ' oleh Admin.';
+            
+            if ($newStatus === 'Ditolak' && $alasan) {
+                $msg .= ' Alasan: ' . $alasan;
+            }
 
             Notifikasi::create([
                 'user_id'      => $pengajuan->user_id,
                 'type'         => $info['type'],
                 'title'        => $info['title'],
-                'message'      => 'Pengajuan ' . $pengajuan->nama_barang . ' (' . $pengajuan->jumlah . ' unit) telah ' . strtolower($newStatus) . ' oleh Admin.',
+                'message'      => $msg,
                 'pengajuan_id' => $pengajuan->id,
             ]);
         }
@@ -345,7 +329,8 @@ class PengajuanController extends Controller
      */
     public function exportCSV(Request $request)
     {
-        $query = $this->buildExportQuery($request);
+        $query = Pengajuan::query();
+        $this->applyFilters($query, $request);
         $pengajuans = $query->latest()->get();
 
         $user = auth()->user();
@@ -388,7 +373,8 @@ class PengajuanController extends Controller
      */
     public function exportPDF(Request $request)
     {
-        $query = $this->buildExportQuery($request);
+        $query = Pengajuan::query();
+        $this->applyFilters($query, $request);
         $pengajuans = $query->latest()->get();
 
         $user = auth()->user();
@@ -425,12 +411,11 @@ class PengajuanController extends Controller
     }
 
     /**
-     * Build export query respecting user's department filter.
+     * Terapkan filter pencarian, status, dan departemen ke query.
      */
-    private function buildExportQuery(Request $request)
+    private function applyFilters($query, Request $request)
     {
         $user = auth()->user();
-        $query = Pengajuan::query();
 
         if ($user->isUser()) {
             $query->where('departemen', $user->departemen);
@@ -464,7 +449,5 @@ class PengajuanController extends Controller
             $query->whereYear('created_at', $tahun)
                   ->whereIn(DB::raw('MONTH(created_at)'), $selectedMonths);
         }
-
-        return $query;
     }
 }
