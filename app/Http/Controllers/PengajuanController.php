@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Pengajuan;
 use App\Models\Notifikasi;
+use App\Models\BarangAtk;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PengajuanController extends Controller
 {
@@ -109,7 +111,8 @@ class PengajuanController extends Controller
      */
     public function create()
     {
-        return view('pengajuan.create');
+        $customBarang = BarangAtk::orderBy('nama_barang')->get();
+        return view('pengajuan.create', compact('customBarang'));
     }
 
     /**
@@ -120,22 +123,49 @@ class PengajuanController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'nama_pemohon' => 'required|string|max:255',
-            'departemen'   => 'required|string|max:255',
-            'nama_barang'  => 'required|string|max:255',
-            'jumlah'       => 'required|integer|min:1',
-            'prioritas'    => 'nullable|in:Rendah,Sedang,Tinggi',
-            'keterangan'   => 'nullable|string',
+            'nama_pemohon'          => 'required|string|max:255',
+            'departemen'            => 'required|string|max:255',
+            'items'                 => 'required|array|min:1',
+            'items.*.nama_barang'   => 'required|string|max:255',
+            'items.*.jumlah'        => 'required|integer|min:1',
+            'items.*.foto'          => 'nullable|image|max:2048',
+            'prioritas'             => 'nullable|in:Rendah,Sedang,Tinggi',
+            'keterangan'            => 'nullable|string',
         ]);
 
-        $data = $request->all();
-        $data['user_id'] = $user->id;
+        $departemen = $user->isUser() ? $user->departemen : $request->departemen;
+        $items = $request->items;
 
-        if ($user->isUser()) {
-            $data['departemen'] = $user->departemen;
+        // Gabungkan semua items menjadi 1 string: "Barang A (2), Barang B (1)"
+        $namaBarangList = [];
+        $totalJumlah = 0;
+        $fotoBarang = [];
+
+        foreach ($items as $index => $item) {
+            $namaBarangList[] = $item['nama_barang'] . ' (' . $item['jumlah'] . ')';
+            $totalJumlah += (int) $item['jumlah'];
+
+            // Handle foto upload per item
+            if ($request->hasFile("items.{$index}.foto")) {
+                $path = $request->file("items.{$index}.foto")->store('foto-barang', 'public');
+                $fotoBarang[] = [
+                    'nama_barang' => $item['nama_barang'],
+                    'path' => $path,
+                ];
+            }
         }
+        $namaBarangGabungan = implode(', ', $namaBarangList);
 
-        $pengajuan = Pengajuan::create($data);
+        $pengajuan = Pengajuan::create([
+            'user_id'       => $user->id,
+            'nama_pemohon'  => $request->nama_pemohon,
+            'departemen'    => $departemen,
+            'nama_barang'   => $namaBarangGabungan,
+            'jumlah'        => $totalJumlah,
+            'prioritas'     => $request->prioritas ?? 'Sedang',
+            'keterangan'    => $request->keterangan,
+            'foto_barang'   => !empty($fotoBarang) ? $fotoBarang : null,
+        ]);
 
         // === NOTIFIKASI: Kirim ke semua admin ===
         $admins = User::where('role', 'admin')->get();
@@ -144,7 +174,7 @@ class PengajuanController extends Controller
                 'user_id'      => $admin->id,
                 'type'         => 'pengajuan_baru',
                 'title'        => 'Pengajuan Baru',
-                'message'      => $user->name . ' mengajukan ' . $pengajuan->nama_barang . ' (' . $pengajuan->jumlah . ' unit) dari dept. ' . $pengajuan->departemen,
+                'message'      => $user->name . ' mengajukan ' . count($items) . ' barang: ' . $namaBarangGabungan . ' dari dept. ' . $departemen,
                 'pengajuan_id' => $pengajuan->id,
             ]);
         }
@@ -201,6 +231,15 @@ class PengajuanController extends Controller
      */
     public function destroy(Pengajuan $pengajuan)
     {
+        // Hapus file foto dari storage
+        if ($pengajuan->foto_barang) {
+            foreach ($pengajuan->foto_barang as $foto) {
+                if (isset($foto['path'])) {
+                    Storage::disk('public')->delete($foto['path']);
+                }
+            }
+        }
+
         $pengajuan->delete();
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil dihapus!');
     }
@@ -237,7 +276,57 @@ class PengajuanController extends Controller
             ]);
         }
 
+        // === AUTO-ADD BARANG: Jika disetujui, tambahkan barang ke daftar ===
+        if ($newStatus === 'Disetujui') {
+            $this->addBarangToList($pengajuan);
+        }
+
         return redirect()->back()->with('success', "Status berhasil diubah menjadi {$newStatus}!");
+    }
+
+    /**
+     * Tambahkan barang dari pengajuan yang disetujui ke tabel barang_atk.
+     * Hanya menambahkan barang yang belum ada di daftar.
+     */
+    private function addBarangToList(Pengajuan $pengajuan): void
+    {
+        // Parse nama_barang: "Barang A (2), Barang B (1)"
+        $namaBarangStr = $pengajuan->nama_barang;
+        preg_match_all('/(.+?)\s*\(\d+\)/', $namaBarangStr, $matches);
+
+        $itemNames = array_map('trim', $matches[1] ?? []);
+
+        // Jika regex gagal (single item tanpa format), fallback
+        if (empty($itemNames)) {
+            $itemNames = [trim($namaBarangStr)];
+        }
+
+        // Build foto lookup dari foto_barang JSON
+        $fotoLookup = [];
+        if ($pengajuan->foto_barang) {
+            foreach ($pengajuan->foto_barang as $foto) {
+                if (isset($foto['nama_barang'], $foto['path'])) {
+                    $fotoLookup[$foto['nama_barang']] = $foto['path'];
+                }
+            }
+        }
+
+        foreach ($itemNames as $nama) {
+            if (empty($nama)) continue;
+
+            // updateOrCreate: jika sudah ada, update foto jika belum punya
+            $existing = BarangAtk::where('nama_barang', $nama)->first();
+
+            if (!$existing) {
+                BarangAtk::create([
+                    'nama_barang' => $nama,
+                    'foto_path'   => $fotoLookup[$nama] ?? null,
+                ]);
+            } elseif (!$existing->foto_path && isset($fotoLookup[$nama])) {
+                // Update foto jika item sudah ada tapi belum punya foto
+                $existing->update(['foto_path' => $fotoLookup[$nama]]);
+            }
+        }
     }
 
     /**

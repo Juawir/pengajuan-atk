@@ -17,7 +17,12 @@ class Pengajuan extends Model
         'jumlah',
         'prioritas',
         'keterangan',
+        'foto_barang',
         'status'
+    ];
+
+    protected $casts = [
+        'foto_barang' => 'array',
     ];
 
     /**

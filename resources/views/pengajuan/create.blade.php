@@ -21,7 +21,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('pengajuan.store') }}" id="form-create">
+                <form method="POST" action="{{ route('pengajuan.store') }}" id="form-create" enctype="multipart/form-data">
                     @csrf
 
                     {{-- Info Pemohon --}}
@@ -72,9 +72,22 @@
                             <div class="item-row" data-index="0">
                                 <div class="item-row-number">1</div>
                                 <div class="item-row-fields">
+                                    <div class="item-thumb" title="Klik untuk lihat detail">
+                                        <i class="bi bi-image" style="font-size: 18px; color: var(--text-muted);"></i>
+                                    </div>
                                     <div class="item-field-barang">
                                         <div class="combobox-wrapper">
-                                            <input type="text" name="items[0][nama_barang]" class="form-control item-input" list="barang-list" placeholder="Pilih atau ketik nama barang" required autocomplete="off">
+                                            <input type="text" name="items[0][nama_barang]" class="form-control item-input" list="barang-list" placeholder="Pilih atau ketik nama barang" required autocomplete="off" oninput="updateItemThumb(this)">
+                                        </div>
+                                        <div class="foto-upload-area" style="display: none;">
+                                            <input type="file" name="items[0][foto]" accept="image/*" class="foto-file-input" id="foto-input-0" onchange="previewFoto(this)" style="display: none;">
+                                            <button type="button" class="btn-upload-foto" onclick="this.previousElementSibling.click()">
+                                                <i class="bi bi-camera-fill"></i> Upload Foto
+                                            </button>
+                                            <div class="foto-preview-wrapper" style="display: none;">
+                                                <img class="foto-preview-img" src="" alt="Preview">
+                                                <button type="button" class="foto-remove-btn" onclick="removeFotoPreview(this)" title="Hapus foto">&times;</button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="item-field-jumlah">
@@ -84,6 +97,15 @@
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {{-- Image Lightbox Modal --}}
+                        <div class="item-lightbox" id="itemLightbox" onclick="closeLightbox()">
+                            <div class="item-lightbox-content" onclick="event.stopPropagation()">
+                                <button type="button" class="item-lightbox-close" onclick="closeLightbox()">&times;</button>
+                                <img id="lightboxImage" src="" alt="Detail Barang">
+                                <div class="item-lightbox-caption" id="lightboxCaption"></div>
                             </div>
                         </div>
 
@@ -319,6 +341,187 @@
 
     let itemIndex = 1;
 
+    // === IMAGE MAPPING BY CATEGORY ===
+    const imageMap = {
+        kertas:     { icon: '📄', img: 'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=400&h=300&fit=crop', label: 'Kertas / Paper' },
+        amplop:     { icon: '✉️', img: 'https://images.unsplash.com/photo-1579547944212-c4f4961a8dd8?w=400&h=300&fit=crop', label: 'Amplop / Envelope' },
+        pulpen:     { icon: '🖊️', img: 'https://images.unsplash.com/photo-1585336261022-680e295ce3fe?w=400&h=300&fit=crop', label: 'Pulpen / Pen' },
+        pensil:     { icon: '✏️', img: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=400&h=300&fit=crop', label: 'Pensil / Pencil' },
+        spidol:     { icon: '🖍️', img: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop', label: 'Spidol / Marker' },
+        highlighter: { icon: '🔆', img: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop', label: 'Highlighter' },
+        tipex:      { icon: '🔧', img: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&h=300&fit=crop', label: 'Tip-Ex / Correction' },
+        correction: { icon: '🔧', img: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&h=300&fit=crop', label: 'Correction Tape' },
+        lem:        { icon: '🧴', img: 'https://images.unsplash.com/photo-1611229461650-6af4e3e29bf0?w=400&h=300&fit=crop', label: 'Lem / Glue' },
+        selotip:    { icon: '📦', img: 'https://images.unsplash.com/photo-1611229461650-6af4e3e29bf0?w=400&h=300&fit=crop', label: 'Selotip / Tape' },
+        lakban:     { icon: '📦', img: 'https://images.unsplash.com/photo-1611229461650-6af4e3e29bf0?w=400&h=300&fit=crop', label: 'Lakban / Tape' },
+        stapler:    { icon: '📎', img: 'https://images.unsplash.com/photo-1568738351265-c29a1e04e12d?w=400&h=300&fit=crop', label: 'Stapler' },
+        staples:    { icon: '📎', img: 'https://images.unsplash.com/photo-1568738351265-c29a1e04e12d?w=400&h=300&fit=crop', label: 'Isi Staples' },
+        binder:     { icon: '📎', img: 'https://images.unsplash.com/photo-1568738351265-c29a1e04e12d?w=400&h=300&fit=crop', label: 'Binder Clip' },
+        clip:       { icon: '📎', img: 'https://images.unsplash.com/photo-1568738351265-c29a1e04e12d?w=400&h=300&fit=crop', label: 'Paper Clip' },
+        gunting:    { icon: '✂️', img: 'https://images.unsplash.com/photo-1590257003876-39e3e0ee9d4a?w=400&h=300&fit=crop', label: 'Gunting / Scissors' },
+        cutter:     { icon: '🔪', img: 'https://images.unsplash.com/photo-1590257003876-39e3e0ee9d4a?w=400&h=300&fit=crop', label: 'Cutter' },
+        penggaris:  { icon: '📏', img: 'https://images.unsplash.com/photo-1590257003876-39e3e0ee9d4a?w=400&h=300&fit=crop', label: 'Penggaris / Ruler' },
+        map:        { icon: '📁', img: 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=400&h=300&fit=crop', label: 'Map / Folder' },
+        ordner:     { icon: '📁', img: 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=400&h=300&fit=crop', label: 'Ordner' },
+        clear:      { icon: '📁', img: 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=400&h=300&fit=crop', label: 'Clear Holder' },
+        buku:       { icon: '📒', img: 'https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?w=400&h=300&fit=crop', label: 'Buku / Notebook' },
+        sticky:     { icon: '📝', img: 'https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?w=400&h=300&fit=crop', label: 'Sticky Notes' },
+        tinta:      { icon: '🖨️', img: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop', label: 'Tinta Printer' },
+        toner:      { icon: '🖨️', img: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop', label: 'Toner Printer' },
+        cartridge:  { icon: '🖨️', img: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop', label: 'Cartridge' },
+        flash:      { icon: '💾', img: 'https://images.unsplash.com/photo-1618410320928-25228d811631?w=400&h=300&fit=crop', label: 'Flash Disk / USB' },
+        kalkulator: { icon: '🧮', img: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=300&fit=crop', label: 'Kalkulator' },
+        stempel:    { icon: '📌', img: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&h=300&fit=crop', label: 'Stempel / Stamp' },
+        baterai:    { icon: '🔋', img: 'https://images.unsplash.com/photo-1619641805634-3919a96c4464?w=400&h=300&fit=crop', label: 'Baterai / Battery' },
+        whiteboard: { icon: '📋', img: 'https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0?w=400&h=300&fit=crop', label: 'White Board' },
+    };
+
+    // === CUSTOM BARANG (dari pengajuan yang disetujui) ===
+    const customBarang = @json($customBarang ?? []);
+    const customImageMap = {};
+
+    customBarang.forEach(item => {
+        // Tambahkan ke daftarBarang jika belum ada
+        if (!daftarBarang.some(b => b.toLowerCase() === item.nama_barang.toLowerCase())) {
+            daftarBarang.push(item.nama_barang);
+        }
+        // Tambahkan foto ke custom image map
+        if (item.foto_path) {
+            customImageMap[item.nama_barang.toLowerCase()] = {
+                icon: '📦',
+                img: '/storage/' + item.foto_path,
+                label: item.nama_barang,
+            };
+        }
+    });
+
+    // Sort ulang daftar barang agar rapi
+    daftarBarang.sort((a, b) => a.localeCompare(b, 'id'));
+
+    function getItemImage(name) {
+        if (!name) return null;
+        const lower = name.toLowerCase();
+
+        // Cek imageMap kategori bawaan dulu
+        for (const [keyword, data] of Object.entries(imageMap)) {
+            if (lower.includes(keyword)) return data;
+        }
+
+        // Cek customImageMap (dari pengajuan disetujui)
+        for (const [itemName, data] of Object.entries(customImageMap)) {
+            if (lower === itemName) return data;
+        }
+
+        return null;
+    }
+
+    function updateItemThumb(input) {
+        const row = input.closest('.item-row');
+        const thumb = row.querySelector('.item-thumb');
+        const uploadArea = row.querySelector('.foto-upload-area');
+        const data = getItemImage(input.value);
+        const isInList = input.value && daftarBarang.some(b => b.toLowerCase() === input.value.toLowerCase());
+
+        if (data) {
+            thumb.innerHTML = `<img src="${data.img}" alt="${data.label}" loading="lazy">`;
+            thumb.classList.add('has-image');
+            thumb.onclick = () => openLightbox(data.img, data.label);
+            // Hide upload area for listed items
+            if (uploadArea) uploadArea.style.display = 'none';
+        } else {
+            // Check if there's a manually uploaded photo preview
+            const previewWrapper = uploadArea ? uploadArea.querySelector('.foto-preview-wrapper') : null;
+            const hasManualPhoto = previewWrapper && previewWrapper.style.display !== 'none';
+
+            if (hasManualPhoto) {
+                const previewImg = previewWrapper.querySelector('.foto-preview-img');
+                thumb.innerHTML = `<img src="${previewImg.src}" alt="Preview" loading="lazy">`;
+                thumb.classList.add('has-image');
+                thumb.onclick = () => openLightbox(previewImg.src, input.value || 'Barang Manual');
+            } else {
+                thumb.innerHTML = `<i class="bi bi-image" style="font-size: 18px; color: var(--text-muted);"></i>`;
+                thumb.classList.remove('has-image');
+                thumb.onclick = null;
+            }
+
+            // Show upload area for manual input (not empty, not in list)
+            if (uploadArea && input.value.trim().length > 0 && !isInList) {
+                uploadArea.style.display = 'flex';
+            } else if (uploadArea) {
+                uploadArea.style.display = 'none';
+            }
+        }
+    }
+
+    function previewFoto(fileInput) {
+        const row = fileInput.closest('.item-row');
+        const previewWrapper = row.querySelector('.foto-preview-wrapper');
+        const previewImg = row.querySelector('.foto-preview-img');
+        const uploadBtn = row.querySelector('.btn-upload-foto');
+        const thumb = row.querySelector('.item-thumb');
+        const nameInput = row.querySelector('.item-input');
+
+        if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Ukuran foto maksimal 2MB!');
+                fileInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewWrapper.style.display = 'flex';
+                uploadBtn.style.display = 'none';
+
+                // Update thumbnail
+                thumb.innerHTML = `<img src="${e.target.result}" alt="Preview" loading="lazy">`;
+                thumb.classList.add('has-image');
+                thumb.onclick = () => openLightbox(e.target.result, nameInput.value || 'Barang Manual');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function removeFotoPreview(btn) {
+        const row = btn.closest('.item-row');
+        const previewWrapper = row.querySelector('.foto-preview-wrapper');
+        const previewImg = row.querySelector('.foto-preview-img');
+        const uploadBtn = row.querySelector('.btn-upload-foto');
+        const fileInput = row.querySelector('.foto-file-input');
+        const thumb = row.querySelector('.item-thumb');
+
+        previewWrapper.style.display = 'none';
+        previewImg.src = '';
+        uploadBtn.style.display = 'inline-flex';
+        fileInput.value = '';
+
+        // Reset thumbnail
+        thumb.innerHTML = `<i class="bi bi-image" style="font-size: 18px; color: var(--text-muted);"></i>`;
+        thumb.classList.remove('has-image');
+        thumb.onclick = null;
+    }
+
+    function openLightbox(imgSrc, caption) {
+        document.getElementById('lightboxImage').src = imgSrc;
+        document.getElementById('lightboxCaption').textContent = caption;
+        document.getElementById('itemLightbox').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('itemLightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Close lightbox with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLightbox();
+    });
+
     // Populate the shared datalist
     function populateDatalist() {
         const datalist = document.getElementById('barang-list');
@@ -347,9 +550,22 @@
         row.innerHTML = `
             <div class="item-row-number">${rowCount + 1}</div>
             <div class="item-row-fields">
+                <div class="item-thumb" title="Klik untuk lihat detail">
+                    <i class="bi bi-image" style="font-size: 18px; color: var(--text-muted);"></i>
+                </div>
                 <div class="item-field-barang">
                     <div class="combobox-wrapper">
-                        <input type="text" name="items[${itemIndex}][nama_barang]" class="form-control item-input" list="barang-list" placeholder="Pilih atau ketik nama barang" required autocomplete="off">
+                        <input type="text" name="items[${itemIndex}][nama_barang]" class="form-control item-input" list="barang-list" placeholder="Pilih atau ketik nama barang" required autocomplete="off" oninput="updateItemThumb(this)">
+                    </div>
+                    <div class="foto-upload-area" style="display: none;">
+                        <input type="file" name="items[${itemIndex}][foto]" accept="image/*" class="foto-file-input" id="foto-input-${itemIndex}" onchange="previewFoto(this)" style="display: none;">
+                        <button type="button" class="btn-upload-foto" onclick="this.previousElementSibling.click()">
+                            <i class="bi bi-camera-fill"></i> Upload Foto
+                        </button>
+                        <div class="foto-preview-wrapper" style="display: none;">
+                            <img class="foto-preview-img" src="" alt="Preview">
+                            <button type="button" class="foto-remove-btn" onclick="removeFotoPreview(this)" title="Hapus foto">&times;</button>
+                        </div>
                     </div>
                 </div>
                 <div class="item-field-jumlah">

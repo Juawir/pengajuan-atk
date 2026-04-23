@@ -107,6 +107,26 @@
                     </div>
                 @endif
 
+                {{-- Foto Barang Gallery --}}
+                @if($pengajuan->foto_barang && count($pengajuan->foto_barang) > 0)
+                    <div style="margin-top: 24px;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;">
+                            <i class="bi bi-images" style="margin-right: 4px;"></i> Foto Barang ({{ count($pengajuan->foto_barang) }})
+                        </div>
+                        <div class="foto-gallery">
+                            @foreach($pengajuan->foto_barang as $foto)
+                                <div class="foto-gallery-item" onclick="openShowLightbox('{{ asset('storage/' . $foto['path']) }}', '{{ $foto['nama_barang'] }}')">
+                                    <img src="{{ asset('storage/' . $foto['path']) }}" alt="{{ $foto['nama_barang'] }}" loading="lazy">
+                                    <div class="foto-gallery-label">{{ $foto['nama_barang'] }}</div>
+                                    <div class="foto-gallery-overlay">
+                                        <i class="bi bi-zoom-in"></i>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Timeline --}}
                 <div style="margin-top: 28px;">
                     <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;">
@@ -130,4 +150,33 @@
             </div>
         </div>
     </div>
+
+    {{-- Lightbox for show page --}}
+    <div class="item-lightbox" id="showLightbox" onclick="closeShowLightbox()">
+        <div class="item-lightbox-content" onclick="event.stopPropagation()">
+            <button type="button" class="item-lightbox-close" onclick="closeShowLightbox()">&times;</button>
+            <img id="showLightboxImage" src="" alt="Detail Barang">
+            <div class="item-lightbox-caption" id="showLightboxCaption"></div>
+        </div>
+    </div>
+@endsection
+
+@section('scripts')
+<script>
+    function openShowLightbox(imgSrc, caption) {
+        document.getElementById('showLightboxImage').src = imgSrc;
+        document.getElementById('showLightboxCaption').textContent = caption;
+        document.getElementById('showLightbox').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeShowLightbox() {
+        document.getElementById('showLightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeShowLightbox();
+    });
+</script>
 @endsection

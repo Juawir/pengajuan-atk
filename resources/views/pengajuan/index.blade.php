@@ -141,8 +141,8 @@
 
                                     @if(auth()->user()->isAdmin())
                                         {{-- Status Dropdown (Admin Only) --}}
-                                        <div class="status-dropdown">
-                                            <button class="btn btn-success btn-sm" title="Ubah Status" id="btn-status-{{ $p->id }}">
+                                        <div class="status-dropdown" id="status-dd-{{ $p->id }}">
+                                            <button type="button" class="btn btn-success btn-sm" title="Ubah Status" id="btn-status-{{ $p->id }}" onclick="toggleStatusDropdown({{ $p->id }})">
                                                 <i class="bi bi-arrow-repeat"></i>
                                             </button>
                                             <div class="status-dropdown-content">
@@ -262,6 +262,31 @@
                 this.classList.toggle('active', cb.checked);
             }, 10);
         });
+    });
+
+    // Status dropdown click toggle
+    function toggleStatusDropdown(id) {
+        const dd = document.getElementById('status-dd-' + id);
+        const isActive = dd.classList.contains('active');
+
+        // Close all other open dropdowns first
+        document.querySelectorAll('.status-dropdown.active').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // Toggle this one
+        if (!isActive) {
+            dd.classList.add('active');
+        }
+    }
+
+    // Close status dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.status-dropdown')) {
+            document.querySelectorAll('.status-dropdown.active').forEach(el => {
+                el.classList.remove('active');
+            });
+        }
     });
 
     @if(auth()->user()->isAdmin())

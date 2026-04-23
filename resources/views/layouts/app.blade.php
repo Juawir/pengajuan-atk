@@ -336,8 +336,10 @@
             });
         }
 
-        // Initial badge load & auto-refresh every 30 seconds
-        fetchNotifications();
+        // Initial badge load (delayed to prevent blocking page load)
+        setTimeout(fetchNotifications, 2000);
+        
+        // Auto-refresh every 30 seconds
         setInterval(() => {
             const dropdown = document.getElementById('notif-dropdown');
             if (!dropdown.classList.contains('show')) {
